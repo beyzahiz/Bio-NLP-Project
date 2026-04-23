@@ -2,13 +2,13 @@ from transformers import pipeline
 
 class BioProcessor:
     def __init__(self):
-        # BioBERT tabanlı NER modelini Hugging Face'ten yüklüyorum
-        # Bu model genetik terimleri, hastalıkları ve ilaçları tanımak için eğitilmiştir.
-        print("BioBERT modeli yükleniyor, bu biraz zaman alabilir...")
+        print("BioBERT modeli yükleniyor...")
+        # d4data yerine dacy/biomedical-ner-all veya benzeri daha spesifik modelleri deneyebiliriz
+        # Ama önce mevcut stratejiyi 'simple' yerine 'first' veya 'max' yaparak kelime birleşimini görelim
         self.ner_pipeline = pipeline(
             "ner", 
-            model="d4data/biomedical-ner-all", # Çok kapsamlı bir medikal NER modeli
-            aggregation_strategy="simple"      # Kelime parçalarını birleştirir (Örn: "Dia", "betes" -> "Diabetes")
+            model="d4data/biomedical-ner-all", 
+            aggregation_strategy="first" # 'simple' yerine 'first' deniyoruz
         )
 
     def extract_entities(self, text):
@@ -20,14 +20,25 @@ class BioProcessor:
         return entities
 
     def clean_entities(self, entities):
-        """Karmaşık sonuçları temizler ve sadece anlamlı olanları döndürür."""
         cleaned = []
+        seen = set() # Aynı kelimeyi tekrar listelememek için
+        
         for ent in entities:
-            # Sadece belirli güven skorunun (score) üzerindekileri alalım
-            if ent['score'] > 0.70:
+            word = ent['word'].strip().lower()
+            label = ent['entity_group']
+            
+            # 1. Filtre: Çok kısa (1-2 harf) veya anlamsız karakterleri ele
+            if len(word) < 3:
+                continue
+                
+            # 2. Filtre: Tekrar edenleri engelle
+            if (word, label) not in seen:
                 cleaned.append({
-                    "word": ent['word'],
-                    "label": ent['entity_group'],
-                    "confidence": round(ent['score'], 2)
+                    "word": word.capitalize(),
+                    "label": label,
+                    "confidence": float(ent['score'])
                 })
-        return cleaned
+                seen.add((word, label))
+        
+        # Alfabetik sıralayalım
+        return sorted(cleaned, key=lambda x: x['word'])
