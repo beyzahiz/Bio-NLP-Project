@@ -11,3 +11,7 @@ src/__pycache__/
 # Sanal ortam (varsa)
 venv/
 .env
+
+.vscode/
+bin/
+obj/
