@@ -23,13 +23,13 @@ class PubMedFetcher:
         conn.close()
 
     def fetch_abstracts(self, disease_name, max_results=5):
-        # 1. Önce Veritabanına Sor (Cache Check)
+        # Önce Veritabanına Sor (Cache Check)
         cached_data = self._check_cache(disease_name)
         if cached_data:
             print(f"'{disease_name}' için veriler yerel veritabanından getirildi.")
             return cached_data
 
-        # 2. Eğer DB'de yoksa API'ye git (ESearch)
+        # Eğer DB'de yoksa API'ye git (ESearch)
         print(f"'{disease_name}' için API'ye istek atılıyor...")
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
         search_url = f"{base_url}esearch.fcgi?db=pubmed&term={disease_name}&retmax={max_results}&retmode=json"
@@ -40,7 +40,7 @@ class PubMedFetcher:
         if not id_list:
             return []
 
-        # 3. ID'leri kullanarak detayları çek (EFetch)
+        # ID'leri kullanarak detayları çek (EFetch)
         ids = ",".join(id_list)
         fetch_url = f"{base_url}efetch.fcgi?db=pubmed&id={ids}&retmode=xml"
         fetch_response = requests.get(fetch_url)
@@ -48,7 +48,7 @@ class PubMedFetcher:
         # XML'den Title ve Abstract ayıklama
         articles = self._parse_xml(fetch_response.content, disease_name)
         
-        # 4. Veritabanına kaydet (Gelecek sefer için)
+        # Veritabanına kaydet (Gelecek sefer için)
         self._save_to_cache(articles)
         
         return articles

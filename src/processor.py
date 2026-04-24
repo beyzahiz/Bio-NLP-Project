@@ -3,12 +3,11 @@ from transformers import pipeline
 class BioProcessor:
     def __init__(self):
         print("BioBERT modeli yükleniyor...")
-        # d4data yerine dacy/biomedical-ner-all veya benzeri daha spesifik modelleri deneyebiliriz
-        # Ama önce mevcut stratejiyi 'simple' yerine 'first' veya 'max' yaparak kelime birleşimini görelim
+        # mevcut stratejide 'simple' yerine 'first' yaparak kelime birleşimi sorunu çözüldü
         self.ner_pipeline = pipeline(
             "ner", 
             model="d4data/biomedical-ner-all", 
-            aggregation_strategy="first" # 'simple' yerine 'first' deniyoruz
+            aggregation_strategy="first" 
         )
 
     def extract_entities(self, text):
@@ -27,11 +26,11 @@ class BioProcessor:
             word = ent['word'].strip().lower()
             label = ent['entity_group']
             
-            # 1. Filtre: Çok kısa (1-2 harf) veya anlamsız karakterleri ele
+            # Çok kısa veya anlamsız karakterleri eleme
             if len(word) < 3:
                 continue
                 
-            # 2. Filtre: Tekrar edenleri engelle
+            # Tekrar edenleri engelleme
             if (word, label) not in seen:
                 cleaned.append({
                     "word": word.capitalize(),
@@ -40,7 +39,7 @@ class BioProcessor:
                 })
                 seen.add((word, label))
         
-        # Alfabetik sıralayalım
+        # Alfabetik sıralama
         return sorted(cleaned, key=lambda x: x['word'])
     
     
@@ -48,6 +47,6 @@ class BioProcessor:
         """Tüm makalelerdeki terimlerin frekansını hesaplar."""
         from collections import Counter
         
-        # Sadece kelimeleri bir listeye topla
+        # Sadece kelimeleri bir listeye toplama
         words = [ent['word'] for ent in all_entities]
         return Counter(words).most_common(limit)
