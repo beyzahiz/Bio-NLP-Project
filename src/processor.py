@@ -42,3 +42,12 @@ class BioProcessor:
         
         # Alfabetik sıralayalım
         return sorted(cleaned, key=lambda x: x['word'])
+    
+    
+    def get_top_entities(self, all_entities, limit=10):
+        """Tüm makalelerdeki terimlerin frekansını hesaplar."""
+        from collections import Counter
+        
+        # Sadece kelimeleri bir listeye topla
+        words = [ent['word'] for ent in all_entities]
+        return Counter(words).most_common(limit)
