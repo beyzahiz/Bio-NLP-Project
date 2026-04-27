@@ -22,15 +22,18 @@ class PubMedFetcher:
         conn.commit()
         conn.close()
 
-    def fetch_abstracts(self, disease_name, max_results=5):
-        # Önce Veritabanına Sor (Cache Check)
+    def fetch_abstracts(self, disease_name, max_results=10):
+        # 1. Önce Veritabanındaki sayıyı kontrol et
         cached_data = self._check_cache(disease_name)
-        if cached_data:
-            print(f"'{disease_name}' için veriler yerel veritabanından getirildi.")
-            return cached_data
+        
+        # EĞER veritabanında yeterli (veya daha fazla) makale varsa, direkt döndür
+        if cached_data and len(cached_data) >= max_results:
+            print(f"'{disease_name}' için yeterli veri ({len(cached_data)}) yerel veritabanında bulundu.")
+            return cached_data[:max_results]
 
-        # Eğer DB'de yoksa API'ye git (ESearch)
-        print(f"'{disease_name}' için API'ye istek atılıyor...")
+        # EĞER veritabanında hiç yoksa VEYA istenenden az varsa API'ye git
+        print(f"'{disease_name}' için veritabanında yeterli kayıt yok. API'den yeni veriler ekleniyor...")
+        
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
         search_url = f"{base_url}esearch.fcgi?db=pubmed&term={disease_name}&retmax={max_results}&retmode=json"
         
@@ -38,20 +41,22 @@ class PubMedFetcher:
         id_list = response.get("esearchresult", {}).get("idlist", [])
 
         if not id_list:
-            return []
+            return cached_data if cached_data else []
 
-        # ID'leri kullanarak detayları çek (EFetch)
+        # Sadece veritabanında olmayan ID'leri filtreleyebiliriz (Opsiyonel ama profesyonelce olur)
+        # Şimdilik basitçe tüm seti güncelleyelim:
         ids = ",".join(id_list)
         fetch_url = f"{base_url}efetch.fcgi?db=pubmed&id={ids}&retmode=xml"
         fetch_response = requests.get(fetch_url)
         
-        # XML'den Title ve Abstract ayıklama
         articles = self._parse_xml(fetch_response.content, disease_name)
         
-        # Veritabanına kaydet (Gelecek sefer için)
+        # Yeni gelenleri kaydet (INSERT OR IGNORE sayesinde eskiler bozulmaz)
         self._save_to_cache(articles)
         
-        return articles
+        # Güncel veriyi tekrar çek ve istenen miktarda döndür
+        updated_data = self._check_cache(disease_name)
+        return updated_data[:max_results]
 
     def _check_cache(self, query):
         conn = sqlite3.connect(self.db_path)
