@@ -6,6 +6,12 @@ import xml.etree.ElementTree as ET # XML parçalamak için
 class PubMedFetcher:
     def __init__(self, db_path="data/pubmed_cache.db"):
         self.db_path = db_path
+        
+        # Klasörün varlığını kontrol et, yoksa oluştur
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+            
         self._create_table()
 
     def _create_table(self):
