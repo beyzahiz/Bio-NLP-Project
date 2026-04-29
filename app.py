@@ -6,10 +6,9 @@ from src.processor import BioProcessor
 # Sayfa ayarları
 st.set_page_config(page_title="BioMiner Pro", page_icon="🧬", layout="wide")
 
-# --- ÖZEL LACİVERT TEMA VE GÖRSEL DÜZENLEME (CSS) ---
+# CSS
 st.markdown("""
     <style>
-    /* Slider ve buton renklerini laciverte çevirir */
     .stSlider > div [data-baseweb="slider"] > div > div { background-color: #1a2a6c; }
     .stSlider [data-testid="stTickBarMin"], .stSlider [data-testid="stTickBarMax"] { color: #1a2a6c; }
     
@@ -36,7 +35,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER BÖLÜMÜ ---
+# HEADER BÖLÜMÜ 
 st.markdown("""
     <div class="header-box">
         <h1>🧬 Bio-NLP: PubMed Literatür Madenciliği</h1>
@@ -44,7 +43,7 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 
-# --- SIDEBAR ---
+# SIDEBAR 
 with st.sidebar:
     st.header("⚙️ Analiz Ayarları")
     
@@ -64,17 +63,15 @@ def load_tools():
 
 fetcher, processor = load_tools()
 
-# --- ANA İÇERİK ---
+# ANA İÇERİK
 st.markdown("### 🔎 Literatür Sorgusu")
 query = st.text_input("Araştırmak istediğiniz hastalık:", placeholder="Örn: Parkinson...")
 
 if query:
     with st.spinner("Makaleler analiz ediliyor..."):
-        # NOT: Burada 'max_results' parametresini gönderiyoruz. 
-        # Fetcher içindeki SQL sorgusuna 'LIMIT' eklememiz gerekecek.
         articles = fetcher.fetch_abstracts(query, max_results=max_results)
         
-        # 1. SORUNUN ÇÖZÜMÜ: Eğer veritabanından daha fazla gelirse, burada buduyoruz (Slicing)
+        # eğer veritabanından daha fazla gelirse burada slicing
         articles = articles[:max_results]
         
         if not articles:
@@ -122,14 +119,14 @@ if query:
                 })
                 st.divider()
 
-            # --- ANALİZ VE RAPOR ---
+            # ANALİZ VE RAPOR 
             if all_found_entities:
                 st.header("📊 Genel Analiz")
                 top_words = processor.get_top_entities([{'word': w} for w in all_found_entities], limit=10)
                 chart_data = pd.DataFrame(top_words, columns=['Terim', 'Frekans'])
                 st.bar_chart(chart_data.set_index('Terim'))
 
-                # TXT Rapor hazırlama (Aynı kalıyor)
+                # TXT Rapor hazırlama 
                 report_text = f"BIO-NLP ANALİZ RAPORU\nSorgu: {query.upper()}\n" + "="*50 + "\n\n"
                 for item in all_findings:
                     report_text += f"BAŞLIK: {item['Title']}\nTERİMLER: {item['Keywords']}\nÖZET: {item['Abstract']}\n" + "-"*30 + "\n\n"

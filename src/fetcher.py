@@ -23,15 +23,15 @@ class PubMedFetcher:
         conn.close()
 
     def fetch_abstracts(self, disease_name, max_results=10):
-        # 1. Önce Veritabanındaki sayıyı kontrol et
+        # Önce veritabanındaki sayıyı kontrol edilir
         cached_data = self._check_cache(disease_name)
         
-        # EĞER veritabanında yeterli (veya daha fazla) makale varsa, direkt döndür
+        # eğer veritabanında yeterli veya daha fazla makale varsa, direkt döndürür
         if cached_data and len(cached_data) >= max_results:
             print(f"'{disease_name}' için yeterli veri ({len(cached_data)}) yerel veritabanında bulundu.")
             return cached_data[:max_results]
 
-        # EĞER veritabanında hiç yoksa VEYA istenenden az varsa API'ye git
+        # eğer veritabanında hiç yoksa veya istenenden az varsa API'ye gider
         print(f"'{disease_name}' için veritabanında yeterli kayıt yok. API'den yeni veriler ekleniyor...")
         
         base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -43,18 +43,16 @@ class PubMedFetcher:
         if not id_list:
             return cached_data if cached_data else []
 
-        # Sadece veritabanında olmayan ID'leri filtreleyebiliriz (Opsiyonel ama profesyonelce olur)
-        # Şimdilik basitçe tüm seti güncelleyelim:
         ids = ",".join(id_list)
         fetch_url = f"{base_url}efetch.fcgi?db=pubmed&id={ids}&retmode=xml"
         fetch_response = requests.get(fetch_url)
         
         articles = self._parse_xml(fetch_response.content, disease_name)
         
-        # Yeni gelenleri kaydet (INSERT OR IGNORE sayesinde eskiler bozulmaz)
+        # yeni gelenleri kaydeder 
         self._save_to_cache(articles)
         
-        # Güncel veriyi tekrar çek ve istenen miktarda döndür
+        # güncel veriyi tekrar çeker ve istenen miktarda döndür
         updated_data = self._check_cache(disease_name)
         return updated_data[:max_results]
 
